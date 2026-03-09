@@ -17,17 +17,21 @@ const orderModel = {
         // ISSUE-0009: missing robust validation for orders in release
         if (it.quantity < 0) throw new Error(`Invalid quantity for product ${it.product_id}`);
 
-        // BUG: ignores quantity
-        total += Number(p.price);
-
-        // BUG: stock not updated
+        // compute total correctly
+        total += Number(p.price) * Number(it.quantity);
       }
 
-      const [orderRes] = await conn.query(`INSERT INTO orders (user_id, total) VALUES (?, ?)`, [userId, total]);
+      // FIX ISSUE-0021: properly handle order date
+      const [orderRes] = await conn.query(
+        `INSERT INTO orders (user_id, total, created_at) VALUES (?, ?, ?)`,
+        [userId, total, new Date()]
+      );
+
       const orderId = orderRes.insertId;
 
       for (const it of items) {
         const p = await productModel.findById(it.product_id);
+
         await conn.query(
           `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`,
           [orderId, it.product_id, it.quantity, p.price]
@@ -36,6 +40,7 @@ const orderModel = {
 
       await conn.commit();
       return { id: orderId, user_id: userId, total, items };
+
     } catch (e) {
       await conn.rollback();
       throw e;
@@ -48,7 +53,14 @@ const orderModel = {
   async listByUser(userId) {
     const conn = await getConn();
     try {
-      const [orders] = await conn.query(`SELECT id, user_id, total, created_at FROM orders WHERE user_id=? ORDER BY id DESC`, [userId]);
+      const [orders] = await conn.query(
+        `SELECT id, user_id, total, created_at 
+         FROM orders 
+         WHERE user_id=? 
+         ORDER BY id DESC`,
+        [userId]
+      );
+
       for (const o of orders) {
         const [items] = await conn.query(
           `SELECT oi.product_id, p.name, oi.quantity, oi.unit_price
@@ -57,9 +69,12 @@ const orderModel = {
            WHERE oi.order_id = ?`,
           [o.id]
         );
+
         o.items = items;
       }
+
       return orders;
+
     } finally {
       await conn.end();
     }
