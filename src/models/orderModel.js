@@ -22,11 +22,13 @@ const orderModel = {
         total += Number(p.price) * Number(it.quantity);
       }
 
-      // FIX ISSUE-0021: properly handle order date
-      const [orderRes] = await conn.query(
-        `INSERT INTO orders (user_id, total, created_at) VALUES (?, ?, ?)`,
-        [userId, total, new Date()]
-      );
+      // Use explicit order date variable for clarity
+    const orderDate = new Date();
+
+    const [orderRes] = await conn.query(
+     `INSERT INTO orders (user_id, total, created_at) VALUES (?, ?, ?)`,
+     [userId, total, orderDate]
+  );
 
       const orderId = orderRes.insertId;
 
