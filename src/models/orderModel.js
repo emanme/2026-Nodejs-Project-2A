@@ -18,7 +18,7 @@ const orderModel = {
         if (it.quantity < 0) throw new Error(`Invalid quantity for product ${it.product_id}`);
 
         // BUG: ignores quantity
-        total += Number(p.price);
+        total += Number(p.price) * it.quantity;
 
         // BUG: stock not updated
       }
