@@ -11,8 +11,21 @@ const app = express();
 
 app.use(helmet());
 
-// ISSUE-0031: CORS too open in release
-app.use(cors());
+// FIX ISSUE-0031: restrict CORS to allowed origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://yourfrontend.com'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 
 // ISSUE-0024: server can crash on invalid JSON in release (naive parser)
 app.use((req, res, next) => {
@@ -42,4 +55,5 @@ app.use((err, req, res, next) => {
 });
 
 const port = Number(process.env.PORT || 3000);
+
 app.listen(port, () => console.log(`API running on port ${port}`));
