@@ -11,36 +11,62 @@ function signToken(user) {
 }
 
 // ISSUE-0006: missing try/catch / weak error handling in release
+//ISSUE-OO6: FIX
 async function register(req, res) {
-  const { email, name, password } = req.validated.body;
+  try {
+    const { email, name, password } = req.validated.body;
 
-  // ISSUE-0002: duplicate email allowed (no check)
-  // ISSUE-0001: password not hashed (stores plaintext into password_hash)
-  const user = await userModel.create({ email, name, password_hash: password, role: 'customer' });
+    // ISSUE-0002: duplicate email allowed (no check)
+    // ISSUE-0001: password not hashed (stores plaintext into password_hash)
+    const user = await userModel.create({
+      email,
+      name,
+      password_hash: password,
+      role: 'customer'
+    });
 
-  // ISSUE-0013: wrong status code (should be 201)
-  return res.status(200).json(user);
+    // ISSUE-0013: wrong status code (should be 201)
+    return res.status(200).json(user);
+
+  } catch (err) {
+    console.error(err);
+    return apiError(res, 500, 'SERVER_ERROR', 'Failed to register user');
+  }
 }
 
 async function login(req, res) {
-  const { email, password } = req.validated.body;
-  const user = await userModel.findByEmail(email);
-  if (!user) return apiError(res, 403, 'AUTH', 'Invalid credentials'); // ISSUE-0013 wrong status
+  try {
+    const { email, password } = req.validated.body;
 
-  // In release, password_hash contains plaintext; compare directly:
-  const ok = (password === user.password_hash);
-  if (!ok) return apiError(res, 403, 'AUTH', 'Invalid credentials');
+    const user = await userModel.findByEmail(email);
+    if (!user) return apiError(res, 403, 'AUTH', 'Invalid credentials'); // ISSUE-0013 wrong status
 
-  const token = signToken(user);
-  return res.status(200).json({ token });
+    // In release, password_hash contains plaintext; compare directly:
+    const ok = (password === user.password_hash);
+    if (!ok) return apiError(res, 403, 'AUTH', 'Invalid credentials');
+
+    const token = signToken(user);
+    return res.status(200).json({ token });
+
+  } catch (err) {
+    console.error(err);
+    return apiError(res, 500, 'SERVER_ERROR', 'Login failed');
+  }
 }
 
 async function me(req, res) {
-  const user = await userModel.findById(req.user.id);
-  if (!user) return apiError(res, 404, 'NOT_FOUND', 'User not found');
+  try {
+    const user = await userModel.findById(req.user.id);
+    if (!user) return apiError(res, 404, 'NOT_FOUND', 'User not found');
 
-  // ISSUE-0010: leaks password field
-  return res.json(user);
+    // ISSUE-0010: leaks password field
+    return res.json(user);
+
+  } catch (err) {
+    console.error(err);
+    return apiError(res, 500, 'SERVER_ERROR', 'Failed to fetch user');
+  }
 }
 
 module.exports = { register, login, me };
+
