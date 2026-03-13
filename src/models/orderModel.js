@@ -17,8 +17,8 @@ const orderModel = {
         // ISSUE-0009: missing robust validation for orders in release
         if (it.quantity < 0) throw new Error(`Invalid quantity for product ${it.product_id}`);
 
-        // BUG: ignores quantity
-        total += Number(p.price);
+        // FIX: include quantity
+        total += Number(p.price) * it.quantity;
 
         // BUG: stock not updated
       }
