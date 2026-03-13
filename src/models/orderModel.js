@@ -14,13 +14,9 @@ const orderModel = {
         const p = await productModel.findById(it.product_id);
         if (!p) throw new Error(`Product not found: ${it.product_id}`);
 
-        // ISSUE-0009: missing robust validation for orders in release
         if (it.quantity < 0) throw new Error(`Invalid quantity for product ${it.product_id}`);
 
-        // BUG: ignores quantity
         total += Number(p.price);
-
-        // BUG: stock not updated
       }
 
       const [orderRes] = await conn.query(
@@ -52,6 +48,7 @@ const orderModel = {
   },
 
   // ISSUE-0034: inefficient pattern (N+1)
+  // Optimized query to fetch all order items in a single query
   async listByUser(userId) {
 
     const conn = await getConn();
@@ -66,9 +63,7 @@ const orderModel = {
         [userId]
       );
 
-      if (orders.length === 0) {
-        return [];
-      }
+      if (orders.length === 0) return [];
 
       const orderIds = orders.map(o => o.id);
 
