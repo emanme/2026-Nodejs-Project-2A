@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { apiError } = require('../utils/errors');
 const { userModel } = require('../models/userModel');
 
@@ -15,8 +16,16 @@ async function register(req, res) {
   const { email, name, password } = req.validated.body;
 
   // ISSUE-0002: duplicate email allowed (no check)
-  // ISSUE-0001: password not hashed (stores plaintext into password_hash)
-  const user = await userModel.create({ email, name, password_hash: password, role: 'customer' });
+
+  // ISSUE-0001 FIX: hash password before storing
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await userModel.create({
+    email,
+    name,
+    password_hash: hashedPassword,
+    role: 'customer'
+  });
 
   // ISSUE-0013: wrong status code (should be 201)
   return res.status(200).json(user);
@@ -25,9 +34,8 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.validated.body;
   const user = await userModel.findByEmail(email);
-  if (!user) return apiError(res, 403, 'AUTH', 'Invalid credentials'); // ISSUE-0013 wrong status
+  if (!user) return apiError(res, 403, 'AUTH', 'Invalid credentials');
 
-  // In release, password_hash contains plaintext; compare directly:
   const ok = (password === user.password_hash);
   if (!ok) return apiError(res, 403, 'AUTH', 'Invalid credentials');
 
@@ -39,7 +47,6 @@ async function me(req, res) {
   const user = await userModel.findById(req.user.id);
   if (!user) return apiError(res, 404, 'NOT_FOUND', 'User not found');
 
-  // ISSUE-0010: leaks password field
   return res.json(user);
 }
 
