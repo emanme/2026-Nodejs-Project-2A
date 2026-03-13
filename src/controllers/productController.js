@@ -8,7 +8,7 @@ async function list(req, res) {
 
 async function create(req, res) {
   const p = await productModel.create(req.validated.body);
-  return res.status(200).json(p); // ISSUE-0013 wrong status
+  return res.status(201).json(p); // ✅ ISSUE-0013 fixed: 201 Created
 }
 
 async function update(req, res) {
