@@ -21,6 +21,14 @@ const orderModel = {
         total += Number(p.price);
 
         // BUG: stock not updated
+        // Fix ISSUE-0012: update stock
+        if (p.stock < it.quantity) {
+          throw new Error(`Not enough stock for product ${it.product_id}`);
+        }
+        await conn.query(
+          `UPDATE products SET stock = stock - ? WHERE id = ?`,
+          [it.quantity, it.product_id]
+        );
       }
 
       const [orderRes] = await conn.query(`INSERT INTO orders (user_id, total) VALUES (?, ?)`, [userId, total]);
