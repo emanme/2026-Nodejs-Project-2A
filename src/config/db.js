@@ -7,13 +7,14 @@ const CFG = {
   password: process.env.DB_PASSWORD || 'store_pass',
   database: process.env.DB_NAME || 'store_db',
   waitForConnections: true,
-  connectionLimit: 10,   
-  queueLimit: 0,
+
 };
 const pool = mysql.createPool(CFG);
 // ISSUE-0007: database connection not reused (no pool in release)
+const pool = mysql.createPool(CFG);
+
 async function getConn() {
-  return mysql.createConnection(CFG);
+  return pool.getConnection();
 }
 
-module.exports = { getConn };
+module.exports = { getConn, pool };
