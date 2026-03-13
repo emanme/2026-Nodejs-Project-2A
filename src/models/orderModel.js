@@ -2,16 +2,20 @@ const { getConn } = require('../config/db');
 const { productModel } = require('./productModel');
 
 const orderModel = {
-  // ISSUE-0005: order total computed incorrectly (quantity ignored)
-  // ISSUE-0012: product stock not updated after order
+
   async create(userId, items) {
+
     let total = 0;
     const conn = await getConn();
+
     try {
+
       await conn.beginTransaction();
 
       for (const it of items) {
+
         const p = await productModel.findById(it.product_id);
+
         if (!p) throw new Error(`Product not found: ${it.product_id}`);
 
         if (it.quantity < 0) throw new Error(`Invalid quantity for product ${it.product_id}`);
@@ -27,6 +31,7 @@ const orderModel = {
       const orderId = orderRes.insertId;
 
       for (const it of items) {
+
         const p = await productModel.findById(it.product_id);
 
         await conn.query(
@@ -37,18 +42,23 @@ const orderModel = {
       }
 
       await conn.commit();
+
       return { id: orderId, user_id: userId, total, items };
 
     } catch (e) {
+
       await conn.rollback();
       throw e;
+
     } finally {
+
       await conn.end();
+
     }
   },
 
   // ISSUE-0034: inefficient pattern (N+1)
-  // Optimized query to fetch all order items in a single query
+  // Optimized query to fetch all order items in one query
   async listByUser(userId) {
 
     const conn = await getConn();
@@ -75,23 +85,29 @@ const orderModel = {
         [orderIds]
       );
 
-      const itemsMap = {};
+      const groupedItems = {};
 
       for (const item of items) {
-        if (!itemsMap[item.order_id]) {
-          itemsMap[item.order_id] = [];
+
+        if (!groupedItems[item.order_id]) {
+          groupedItems[item.order_id] = [];
         }
-        itemsMap[item.order_id].push(item);
+
+        groupedItems[item.order_id].push(item);
       }
 
       for (const order of orders) {
-        order.items = itemsMap[order.id] || [];
+
+        order.items = groupedItems[order.id] || [];
+
       }
 
       return orders;
 
     } finally {
+
       await conn.end();
+
     }
   }
 };
