@@ -44,22 +44,44 @@ const orderModel = {
     }
   },
 
-  // ISSUE-0034: inefficient pattern (N+1)
+  // ISSUE-0034: inefficient pattern (N+1) → FIXED
+  //FIX ISSUE-0034
   async listByUser(userId) {
     const conn = await getConn();
     try {
-      const [orders] = await conn.query(`SELECT id, user_id, total, created_at FROM orders WHERE user_id=? ORDER BY id DESC`, [userId]);
-      for (const o of orders) {
-        const [items] = await conn.query(
-          `SELECT oi.product_id, p.name, oi.quantity, oi.unit_price
-           FROM order_items oi
-           JOIN products p ON p.id = oi.product_id
-           WHERE oi.order_id = ?`,
-          [o.id]
-        );
-        o.items = items;
+      const [rows] = await conn.query(
+        `SELECT o.id, o.user_id, o.total, o.created_at,
+                oi.product_id, p.name, oi.quantity, oi.unit_price
+         FROM orders o
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+         LEFT JOIN products p ON p.id = oi.product_id
+         WHERE o.user_id = ?
+         ORDER BY o.id DESC`,
+        [userId]
+      );
+
+      const ordersMap = new Map();
+      for (const row of rows) {
+        if (!ordersMap.has(row.id)) {
+          ordersMap.set(row.id, {
+            id: row.id,
+            user_id: row.user_id,
+            total: row.total,
+            created_at: row.created_at,
+            items: []
+          });
+        }
+        if (row.product_id) {
+          ordersMap.get(row.id).items.push({
+            product_id: row.product_id,
+            name: row.name,
+            quantity: row.quantity,
+            unit_price: row.unit_price
+          });
+        }
       }
-      return orders;
+
+      return Array.from(ordersMap.values());
     } finally {
       await conn.end();
     }
