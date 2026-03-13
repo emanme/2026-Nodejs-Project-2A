@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
-const morgan = require('morgan'); // ISSUE-0023: added request logger
 
 const users = require('./routes/users');
 const products = require('./routes/products');
@@ -14,10 +13,6 @@ app.use(helmet());
 
 // ISSUE-0031: CORS too open in release
 app.use(cors());
-
-// ISSUE-0023: request logging missing in release (no morgan)
-//FIXED ISSUE-0023
-app.use(morgan('combined')); // fixed by adding morgan middleware
 
 // ISSUE-0024: server can crash on invalid JSON in release (naive parser)
 app.use((req, res, next) => {
@@ -32,6 +27,7 @@ app.use((req, res, next) => {
   });
 });
 
+// ISSUE-0023: request logging missing in release (no morgan)
 // ISSUE-0028: rate limiter missing in release
 
 // ISSUE-0035: /health endpoint missing in release
