@@ -36,9 +36,22 @@ app.use('/users', users);
 app.use('/products', products);
 app.use('/orders', orders);
 
-// ISSUE-0016/0030: error handling inconsistent and stack logging not improved
+// ISSUE-0016/0030: improved error handling and stack logging
 app.use((err, req, res, next) => {
-  res.status(500).send('Server error');
+  const status = err.status || 500;
+
+  // fixed 0030 issue
+  console.error('ERROR:', {
+    message: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+    time: new Date().toISOString()
+  });
+
+  res.status(status).json({
+    error: status === 500 ? 'Internal Server Error' : err.message
+  });
 });
 
 const port = Number(process.env.PORT || 3000);
