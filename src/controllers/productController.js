@@ -15,7 +15,7 @@ async function update(req, res) {
   const { id } = req.validated.params;
   const p = await productModel.update(id, req.validated.body);
   if (!p) return res.status(404).send('Product not found'); // ISSUE-0016 not standardized
-  return res.json(p);
+  return res.status(200).json(p); // ✅ Explicit 200 OK
 }
 
 async function remove(req, res) {
