@@ -14,6 +14,7 @@ function signToken(user) {
 async function register(req, res) {
   const { email, name, password } = req.validated.body;
 
+  // SECURITY: hash password before saving to database
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await userModel.create({
@@ -32,7 +33,7 @@ async function login(req, res) {
 
   if (!user) return apiError(res, 403, 'AUTH', 'Invalid credentials');
 
-  // IMPROVEMENT: compare hashed password securely
+  // Compare hashed password securely
   const ok = await bcrypt.compare(password, user.password_hash);
 
   if (!ok) return apiError(res, 403, 'AUTH', 'Invalid credentials');
